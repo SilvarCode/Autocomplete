@@ -89,7 +89,7 @@ trait AutocompleteTrait
         $records = [];
         $displayField = null;
         if (($this->request->getAttribute('isAjax')) || (Configure::read('debug'))) {
-			$this->enableAutoRender();
+            $this->enableAutoRender();
             $table = $this->fetchTable($this->getAutocompleteTable());
             $alias = $table->getAlias();
             $displayField = $table->getDisplayField();
