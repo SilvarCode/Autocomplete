@@ -32,16 +32,30 @@ class AutocompleteWidget extends BasicWidget
      * @var \Cake\View\StringTemplate
      */
     protected $_templates = [
-        'autocompleteInput'=>' <input type="autocomplete" name="{{name}}" {{attrs}} />',
-        'autocompleteSelect'=>  '<select name="{{name}}" {{attrs}}>{{content}}</select>',
-        'autocompleteSelectMultiple'=>  '<select name="{{name}}[]" multiple="multiple"{{attrs}}>{{content}}</select>',
-        'autocompleteContainer'=>'<div class="autocomplete">{{content}}</div>',
-        'autocompleteShow'=>'<div id="{{id}}" class="autocomplete-selection">{{content}}</div>',
-        'autocompleteShowItem'=>'<span class="autocomplete-selection-item">
+        'autocompleteInput' =>' <input type="autocomplete" name="{{name}}" {{attrs}} />',
+        'autocompleteSelect' => '<select name="{{name}}" {{attrs}}>{{content}}</select>',
+        'autocompleteSelectMultiple' => '<select name="{{name}}[]" multiple="multiple"{{attrs}}>{{content}}</select>',
+        'autocompleteContainer' => '<div class="autocomplete">{{content}}</div>',
+        'autocompleteShow' => '<div id="{{id}}" class="autocomplete-selection">{{content}}</div>',
+        'autocompleteShowItem' => '<span class="autocomplete-selection-item">
             <span class="text">{{text}}</span>
             <span class="remove-button"><i class="fa fa-times" data-value="{{value}}"></i></span>
         </span>',
     ];
+
+    /*
+    Todo:
+    <div class="autocomplete">
+        <div class="autocomplete-choice"></div>
+        <div class="autocomplete-control">
+            <div class="row">
+                <div class="col">input</div>
+                <div class="col-auto">load-dialog</div>
+            </div>
+        </div>
+        <div class="autocomplete-hidden" style="display: hidden;"></div>
+    </div>
+    */
 
     protected $defaults = [
         'name' => '',
