@@ -90,6 +90,12 @@ class AutocompleteWidget extends BasicWidget
     {
         $data = array_merge($this->defaults, $data);
         $data = array_merge(['id'=>$this->_domId($data['name'])], $data);
+        if (empty($data['multiple'])) {
+            if ((substr($data['fieldName'], -4) === '_ids')) {
+                $data['multiple'] = true; 
+            }
+        }
+        
         if (!empty($data['data-url'])) {
             $data['data-url'] = Router::url(
                 $data['data-url'], 
