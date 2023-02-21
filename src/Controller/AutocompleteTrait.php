@@ -131,13 +131,16 @@ trait AutocompleteTrait
         $this->set(compact('records','displayField'));
         $this->response = $this->response->withCache('-1 minute', '+5 minutes');
         $this->RequestHandler->respondAs('application/json');
-        /**
-         * We have a possible inconvenience here.
-         * It is possible that the user may not have created the template,
-         * if so then, we should be able to render the autocomplete element 
-         * automatically. Will come back to this later.
-         * For now, the user will have to create the template manually 
-         * unless using the SilvarCode plugin which takes take of everything.
-         */
+
+        try {
+            $this->render();
+        } catch (\Exception $e) {
+            $viewBuilder = $this->viewBuilder();
+            $viewBuilder->setLayout('ajax');
+            $viewBuilder->setPlugin('SilvarCode/Autocomplete');
+            $viewBuilder->setTemplate('autocomplete');
+            $viewBuilder->setTemplatePath('element');
+            $this->render();
+        }
     }
 }

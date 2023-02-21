@@ -20,6 +20,9 @@ jQuery(document).ready(function($){
         let autocompleteCache = {};
         let autocompleteShow = $('#' + autocompleteId + '-show');
         let autocompleteSelect = $('#' + autocompleteId + '-hidden');
+        /**
+         * We still have minor problem which we need to fix before the next release
+         */
 
         enforceOptionsSelected();
         autocompleteShow.find('span.autocomplete-selection-item span.remove-button i').each(function(){
@@ -225,7 +228,6 @@ jQuery(document).ready(function($){
                     data = $.parseJSON(data);
                     autocompleteCache[request.term] = data;
                     autocomplete.removeClass('autocomplete-loading-input');
-                    console.log(data);
                     response($.map(data, function (item) {
                         return item;
                     }));

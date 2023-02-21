@@ -87,6 +87,15 @@ class AutocompleteHelper extends Helper
         if ((count($fieldArray) > 1) && (!isset($options['data-url']))) {
             $fieldController = Inflector::pluralize(current($fieldArray));
             $fieldController = Inflector::dasherize($fieldController);
+        } elseif ((!isset($options['data-url'])) || ((substr($field, -3) === '_id'))) {
+            $fieldController = Inflector::dasherize(
+                Inflector::pluralize(
+                    rtrim(
+                        $field, 
+                        '_id'
+                    )
+                )
+            );
         }
 
         $options = array_merge([
