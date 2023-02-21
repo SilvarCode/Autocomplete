@@ -56,8 +56,25 @@ class AutocompleteHelper extends Helper
         );
         
         $this->Html->css('/autocomplete/autocomplete.css', ['block'=>true]);
-        $this->Html->script('/autocomplete/autocomplete.mini.js', ['block'=>'scriptBottom']);
+        $this->Html->script('/autocomplete/autocomplete.min.js', ['block'=>'scriptBottom']);
 	}
+
+    /**
+     * For convenience only
+     * @param array $options - an array <numeric => string>
+     * @param array - an empty array when the data passed is not in the correct format,
+     * or an array formatted as ['value'=>$key, 'text'=>$value]
+     */
+    public function buildOptions(array $options): array
+    {
+        $niceOptions = [];
+        foreach ($options as $key=>$option) {
+            if ((is_string($option)) && ((is_numeric($key)) || (strlen($key) == 36))) {
+                $niceOptions[] = ['value'=>$key, 'text'=>$option];
+            }
+        }
+        return $niceOptions;
+    }
 
     /**
      * Render form control

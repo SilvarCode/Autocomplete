@@ -39,24 +39,10 @@ class AutocompleteWidget extends BasicWidget
         'autocompleteShow' => '<div id="{{id}}" class="autocomplete-selection">{{content}}</div>',
         'autocompleteShowItem' => '<span class="autocomplete-selection-item">
             <span class="text">{{text}}</span>
-            <span class="remove-button"><i class="fa fa-times" data-value="{{value}}"></i></span>
+            <span class="remove-button"><i class="fa fa-times" data-hidden-value="{{value}}"></i></span>
         </span>',
     ];
-
-    /*
-    Todo:
-    <div class="autocomplete">
-        <div class="autocomplete-choice"></div>
-        <div class="autocomplete-control">
-            <div class="row">
-                <div class="col">input</div>
-                <div class="col-auto">load-dialog</div>
-            </div>
-        </div>
-        <div class="autocomplete-hidden" style="display: hidden;"></div>
-    </div>
-    */
-
+    
     protected $defaults = [
         'name' => '',
         'label' => null,
@@ -65,6 +51,7 @@ class AutocompleteWidget extends BasicWidget
         'currentValues' => [],
         'autocomplete'=>'off',
         'data-url' => '',
+        'val'=>null,
     ];
 
     /**
@@ -90,10 +77,8 @@ class AutocompleteWidget extends BasicWidget
     {
         $data = array_merge($this->defaults, $data);
         $data = array_merge(['id'=>$this->_domId($data['name'])], $data);
-        if (empty($data['multiple'])) {
-            if ((substr($data['fieldName'], -4) === '_ids')) {
-                $data['multiple'] = true; 
-            }
+        if ((empty($data['multiple'])) && (substr($data['fieldName'], -4) === '_ids')) {
+            $data['multiple'] = true; 
         }
         
         if (!empty($data['data-url'])) {
@@ -103,20 +88,21 @@ class AutocompleteWidget extends BasicWidget
             );
         }
         
-        $multiple = $data['multiple'];
-        $currentValues = (array) $data['currentValues'];
-        if (in_array($multiple, [1,'1', 'true', 'multiple'])) {
-            $multiple = true;
-        }
-
+        $data['val'] = (array) $data['val'];
         $data['data-options'] = json_encode($this->formatOptions((array)$data['options']));
-        unset($data['multiple'], $data['currentValues'], $data['options']);
-
+        $multiple = in_array($data['multiple'], [1, '1', 'true', 'multiple']);
+        $currentValues = (!empty($data['val'])) ? [] : (array) $data['currentValues'];
+        foreach (json_decode($data['data-options']) as $op) {
+            if (in_array($op->value, $data['val'])) {
+                $currentValues[$op->value] = (array) $op;
+            }
+        }
+        unset($data['multiple'], $data['currentValues'], $data['val'], $data['options']);
         //We must rely on a class to manipulate the input later.
         $data = array_merge(['id'=>$this->_domId($data['name'])], $data);
         $classes = preg_split('/\s+/', Hash::get($data, 'class', ''));
         $classes[] = 'sc-autocomplete';
-        $classes = array_unique(array_map('trim',$classes));
+        $classes = array_unique(array_map('trim', $classes));
         sort($classes);
         $data['class'] = implode(' ', $classes);
         unset($classes);
@@ -205,7 +191,7 @@ class AutocompleteWidget extends BasicWidget
         foreach ($options as $key => $option) {
             if (!is_array($option)) {
                 $option = [
-                    'value'=>$option,
+                    'value'=>$key,
                     'text'=>$option,
                 ];
             }

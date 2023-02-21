@@ -1,6 +1,12 @@
 @import "/autocomplete/jquery-ui-1.13.2.custom/jquery-ui.structure.min.css";
 @import "/autocomplete/jquery-ui-1.13.2.custom/jquery-ui.theme.min.css";
 
+ul.ui-autocomplete {
+    max-height: 300px;
+    overflow: hidden;
+    overflow-y: auto;
+}
+
 .outline-none {
     outline: none !important;
 }

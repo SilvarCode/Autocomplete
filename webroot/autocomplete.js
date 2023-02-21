@@ -11,21 +11,32 @@
  *              https://opensource.org/licenses/mit-license.php MIT License
  *
  */
- jQuery(document).ready(function($){
+jQuery(document).ready(function($){
     $('input.sc-autocomplete').each(function(){
         let autocomplete = $(this);
         let autocompleteId = autocomplete.attr('id');
         let autocompleteUrl = autocomplete.attr('data-url');
+        let autocompleteOptions = $.parseJSON(autocomplete.attr('data-options')) || '{}';
         let autocompleteCache = {};
         let autocompleteShow = $('#' + autocompleteId + '-show');
         let autocompleteSelect = $('#' + autocompleteId + '-hidden');
+
+        enforceOptionsSelected();
+        autocompleteShow.find('span.autocomplete-selection-item span.remove-button i').each(function(){
+            $(this).on('click', function(){
+                let toRemove = $(this).closest('span.autocomplete-selection-item');
+                let toRemoveHiddenValue = $(toRemove).find('span.remove-button i').attr('data-hidden-value');
+                removeOption(toRemoveHiddenValue);
+                toRemove.remove();
+            });
+        });
 
         /**
          * 
          */
         function getOptionValues()
         {
-            values = [];
+            let values = [];
             autocompleteSelect.find('option').each(function(){
                 values.push($(this).val());
             });
@@ -70,6 +81,51 @@
             });
         }
         
+        /**
+         * Document function
+         */
+        function filterDataOptions(term, searchOptions)
+        {
+            let items = [];
+            $.map(searchOptions, function (item) {
+                let currentValueExists = checkOptionValueExists(item.value);
+                if ((!currentValueExists) && (item.text.search(new RegExp(term, 'gi')) > -1)) {
+                    if ((typeof item.label == 'undefined')) {
+                        item.label = '<div class="row"><div class="col">'+ item.text +'</div></div>';
+                    }
+                    
+                    items.push(item);
+                }
+            });
+            return items;
+        }
+        
+        /**
+         * @param string s1 - the original string
+         * @param string s2 - what to bold in the string
+         * @return string with replace operation done
+         */
+        function boldSpanText(s1, s2)
+        {
+            s1 = String(s1);
+            s2 = String(s2);
+            return s1.replace(new RegExp(s2,"gi"),'<span class="font-weight-bold">$&</span>');
+            /**
+             * /(?<=<.+.>)(.*?)(?=<.*\/.+.?>)/gi
+             */
+        }
+        
+        /**
+         * Set selected property of selected options
+         * @return void
+         */
+        function enforceOptionsSelected()
+        {
+            autocompleteSelect.find('option').each(function(){
+                $(this).attr('selected', 'selected');
+            });
+        }
+        
         autocomplete.autocomplete({
             search: function(event,ui) {
                 //console.log(ui);
@@ -85,7 +141,7 @@
                     this.value = '';
                     return false;
                 }
-
+                
                 //Only one option when not multiple
                 if ((autocompleteSelect.attr('multiple') !== 'multiple')) {
                     removeOptions();
@@ -119,19 +175,13 @@
                 span.find('span.remove-button i').each(function(){
                     $(this).on('click', function(){
                         let toRemove = $(this).closest('span.autocomplete-selection-item');
-                        let toRemoveHiddenValue = $(toRemove).find(
-                            'span.remove-button i'
-                        ).attr(
-                            'data-hidden-value'
-                        );
-                        
+                        let toRemoveHiddenValue = $(toRemove).find('span.remove-button i').attr('data-hidden-value');
                         removeOption(toRemoveHiddenValue);
                         toRemove.remove();
                     });
                 });
-
-                //span = undefined;
                 
+                enforceOptionsSelected();
                 this.value = '';
                 return false;
             },
@@ -140,7 +190,24 @@
                     response(autocompleteCache[request.term]);
                     return;
                 }
-
+                
+                //Only one option when not multiple
+                if ((autocompleteSelect.attr('multiple') !== 'multiple')) {
+                    removeOptions();
+                }
+                
+                searchCurrentItems = filterDataOptions(
+                    request.term, 
+                    autocompleteOptions
+                );
+                
+                if ((searchCurrentItems.length > 0)) {
+                    autocompleteCache[request.term] = searchCurrentItems;
+                    return response($.map(searchCurrentItems, function (item) {
+                        return item;
+                    }));
+                }
+                
                 requestOptions = {}
                 requestOptions.url = autocompleteUrl;
                 requestOptions.type = 'GET';
@@ -161,6 +228,7 @@
                     data = $.parseJSON(data);
                     autocompleteCache[request.term] = data;
                     autocomplete.removeClass('autocomplete-loading-input');
+                    console.log(data);
                     response($.map(data, function (item) {
                         return item;
                     }));
@@ -169,14 +237,13 @@
             minLength: 2
         })
         .data("ui-autocomplete")._renderItem = function (ul, item) {
-            let searchedTerm = String(item.label).replace(new RegExp(this.term, "gi"),"<span class='bold'>$&</span>");
             return $(
                 "<li></li>"
             ).data(
                 "ui-autocomplete-item", 
                 item
             ).append(
-                "<div>" + searchedTerm + "</div>"
+                "<div>" + boldSpanText(item.label, this.term) + "</div>"
             ).appendTo(
                 ul
             );
