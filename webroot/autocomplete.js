@@ -109,10 +109,7 @@ jQuery(document).ready(function($){
         {
             s1 = String(s1);
             s2 = String(s2);
-            return s1.replace(new RegExp(s2,"gi"),'<span class="font-weight-bold">$&</span>');
-            /**
-             * /(?<=<.+.>)(.*?)(?=<.*\/.+.?>)/gi
-             */
+            return $(s1).text().replace(new RegExp(s2,"gi"),'<strong>$&</strong>');
         }
         
         /**
