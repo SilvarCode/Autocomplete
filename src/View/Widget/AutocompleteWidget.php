@@ -1,10 +1,11 @@
-<?php 
+<?php
 declare(strict_types=1);
 
 /**
  * ***********************************
  * ||       AutocompleteWidget      ||
  * ***********************************
+ *
  * @copyright   2022 SilvarCode / SilvarCode.com
  *              All rights reserved.
  * @link        https://silvarcode.com
@@ -15,14 +16,14 @@ declare(strict_types=1);
  */
 namespace SilvarCode\Autocomplete\View\Widget;
 
-use Cake\View\StringTemplate;
-use Cake\View\Widget\BasicWidget;
-use Cake\View\Form\ContextInterface;
-use Cake\View\Helper\IdGeneratorTrait;
 use Cake\Routing\Router;
 use Cake\Utility\Hash;
+use Cake\View\Form\ContextInterface;
+use Cake\View\Helper\IdGeneratorTrait;
+use Cake\View\StringTemplate;
+use Cake\View\Widget\WidgetInterface;
 
-class AutocompleteWidget extends BasicWidget
+class AutocompleteWidget implements WidgetInterface
 {
     use IdGeneratorTrait;
 
@@ -31,27 +32,18 @@ class AutocompleteWidget extends BasicWidget
      *
      * @var \Cake\View\StringTemplate
      */
-    protected $_templates = [
-        'autocompleteInput' =>' <input type="autocomplete" name="{{name}}" {{attrs}} />',
-        'autocompleteSelect' => '<select name="{{name}}" {{attrs}}>{{content}}</select>',
-        'autocompleteSelectMultiple' => '<select name="{{name}}[]" multiple="multiple"{{attrs}}>{{content}}</select>',
-        'autocompleteContainer' => '<div class="autocomplete">{{content}}</div>',
-        'autocompleteShow' => '<div id="{{id}}" class="autocomplete-selection">{{content}}</div>',
-        'autocompleteShowItem' => '<span class="autocomplete-selection-item">
-            <span class="text">{{text}}</span>
-            <span class="remove-button"><i class="fa fa-times" data-hidden-value="{{value}}"></i></span>
-        </span>',
-    ];
-    
-    protected $defaults = [
+    protected \Cake\View\StringTemplate $templates;
+
+    protected array $defaults = [
         'name' => '',
         'label' => null,
-        'multiple'=>null,
+        'multiple' => null,
         'options' => null,
         'currentValues' => [],
-        'autocomplete'=>'off',
+        'autocomplete' => 'off',
+        'itemOptions' => [],
         'data-url' => '',
-        'val'=>null,
+        'val' => null,
     ];
 
     /**
@@ -61,8 +53,36 @@ class AutocompleteWidget extends BasicWidget
      */
     public function __construct(StringTemplate $templates)
     {
-        $templates->add($this->_templates);
-        $this->_templates = $templates;
+        $this->templates = $templates;
+        unset($templates);
+
+        $this->templates->add([
+            'autocompleteInput' => ' <input type="autocomplete" name="{{name}}" {{attrs}} />',
+            'autocompleteSelect' => '<select name="{{name}}"{{attrs}}>{{content}}</select>',
+            'autocompleteSelectMultiple' => '<select name="{{name}}[]" multiple="multiple"{{attrs}}>{{content}}</select>',
+            'autocompleteContainer' => '<div class="autocomplete">{{content}}</div>',
+            'autocompleteShow' => '<div id="{{id}}" class="{{class}}">{{content}}</div>',
+            'autocompleteShowItem' => '<span class="autocomplete-selection-item">{{text}}{{remove}}</span>',
+            'autocompleteShowItemText' => '<span class="text">{{text}}</span>',
+            'autocompleteShowItemRemove' => '<span class="remove-button">{{text}}</span>',
+            'autocompleteShowItemRemoveIcon' => '<i class="fa fa-times" data-hidden-value="{{value}}"></i>',
+            'autocompleteOption' => '<option value="{{value}}"{{attrs}}>{{text}}</option>',
+        ]);
+    }
+
+    /**
+     * @param string $string
+     * @param string $suffix
+     * @return bool
+     */
+    public static function hasSuffix(string $string, string $suffix): bool
+    {
+        $strlen = strlen($suffix);
+        if (($strlen > 0) && (substr($string, -$strlen, $strlen) === $suffix)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -70,98 +90,111 @@ class AutocompleteWidget extends BasicWidget
      *
      * @param array $data The data to build an input with.
      * @param \Cake\View\Form\ContextInterface $context The current form context.
-     *
      * @return string
      */
     public function render(array $data, ContextInterface $context): string
     {
         $data = array_merge($this->defaults, $data);
-        $data = array_merge(['id'=>$this->_domId($data['name'])], $data);
-        if ((empty($data['multiple'])) && (substr($data['fieldName'], -4) === '_ids')) {
-            $data['multiple'] = true; 
+        $data = array_merge(['id' => $this->_domId($data['name'])], $data);
+        if (empty($data['multiple']) && self::hasSuffix($data['fieldName'], '_ids')) {
+            $data['multiple'] = true;
         }
-        
+
         if (!empty($data['data-url'])) {
             $data['data-url'] = Router::url(
-                $data['data-url'], 
+                $data['data-url'],
                 true
             );
         }
-        
-        $data['val'] = (array) $data['val'];
+
+        $data['val'] = (array)$data['val'];
         $data['data-options'] = json_encode($this->formatOptions((array)$data['options']));
         $multiple = in_array($data['multiple'], [1, '1', 'true', 'multiple']);
-        $currentValues = (!empty($data['val'])) ? [] : (array) $data['currentValues'];
+        $currentValues = !empty($data['val']) ? [] : (array)$data['currentValues'];
         foreach (json_decode($data['data-options']) as $op) {
             if (in_array($op->value, $data['val'])) {
-                $currentValues[$op->value] = (array) $op;
+                $currentValues[$op->value] = (array)$op;
             }
         }
+
         unset($data['multiple'], $data['currentValues'], $data['val'], $data['options']);
-        //We must rely on a class to manipulate the input later.
-        $data = array_merge(['id'=>$this->_domId($data['name'])], $data);
+        // We must rely on a class to manipulate the input later.
+        $data = array_merge(['id' => $this->_domId($data['name'])], $data);
         $classes = preg_split('/\s+/', Hash::get($data, 'class', ''));
         $classes[] = 'sc-autocomplete';
         $classes = array_unique(array_map('trim', $classes));
         sort($classes);
         $data['class'] = implode(' ', $classes);
         unset($classes);
-        
-        //Input
-        $input = $this->_templates->format('input', [
-            'type'=>'text',
+
+        // Input
+        $input = $this->templates->format('input', [
+            'type' => 'text',
             'name' => $data['name'],
-            'attrs' => $this->_templates->formatAttributes($data, ['name']),
+            'attrs' => $this->templates->formatAttributes($data, ['name']),
         ]);
 
-        //Current values
-        $show = $this->_templates->format('autocompleteShow', [
+        $multiline = boolval($data['multiline'] ?? false);
+        $showClass = ['autocomplete-selection', $multiline ? 'multiline' : null];
+        $showClass = implode(' ', array_filter($showClass));
+
+        // Current values
+        $show = $this->templates->format('autocompleteShow', [
             'id' => "{$data['id']}-show",
+            'class' => $showClass,
             'content' => implode("\n", $this->getShowItems($currentValues)),
         ]);
 
-        $data['id'] = $data['id'].'-hidden';
+        $data['id'] = $data['id'] . '-hidden';
         foreach ($data as $key => $value) {
-            if (empty(in_array($key, ['id','name']))) {
+            if (!in_array($key, ['id', 'name'])) {
                 unset($data[$key]);
             }
         }
-        
-        //Hidden
+
+        // Hidden
         $data['style'] = 'display:none !important;';
         $select = $multiple ? 'autocompleteSelectMultiple' : 'autocompleteSelect';
-        $hidden = $this->_templates->format('hiddenBlock', [
-            'content' => $this->_templates->format($select, [
+        $hidden = $this->templates->format('hiddenBlock', [
+            'content' => $this->templates->format($select, [
                 'name' => $data['name'],
                 'content' => implode("\n", $this->getSelectOptions($currentValues)),
-                'attrs' => $this->_templates->formatAttributes($data, ['name'])
-            ])
+                'attrs' => $this->templates->formatAttributes($data, ['name']),
+            ]),
         ]);
-        
-        return  $show.$input.$hidden;
+
+        return $show . $input . $hidden;
     }
 
     /**
-     * @inheritdoc
+     * @param array $option
+     * @return string
      */
-    protected function getShowItem(array $option = [])
-    {   
-        return $this->_templates->format('autocompleteShowItem', [
-            'text' => $option['text'],
-            'value'=> $option['value'],
+    protected function getShowItem(array $option): string
+    {
+        return $this->templates->format('autocompleteShowItem', [
+            'text' => $this->templates->format('autocompleteShowItemText', [
+                'text' => $option['text'],
+            ]),
+            'remove' => $this->templates->format('autocompleteShowItemRemove', [
+                'text' => $this->templates->format('autocompleteShowItemRemoveIcon', [
+                    'value' => $option['value'],
+                ]),
+            ]),
         ]);
     }
 
     /**
-     * @inheritdoc
+     * @param array $options
+     * @return array
      */
-    protected function getShowItems(array $options = []): array
-    {   
+    protected function getShowItems(array $options): array
+    {
         foreach ($options as $key => $option) {
             if (!is_array($option)) {
                 $option = [
-                    'value'=>$option,
-                    'text'=>$option,
+                    'value' => $option,
+                    'text' => $option,
                 ];
             }
 
@@ -172,37 +205,39 @@ class AutocompleteWidget extends BasicWidget
     }
 
     /**
-     * @inheritdoc
+     * @param array $option
+     * @return string
      */
-    protected function getOption(array $option = [])
-    {   
-        return $this->_templates->format('option', [
+    protected function getOption(array $option): string
+    {
+        return $this->templates->format('autocompleteOption', [
             'value' => $option['value'],
             'text' => $option['text'],
-            'attrs' => $this->_templates->formatAttributes($option, ['value','text'])
+            'attrs' => $this->templates->formatAttributes($option, ['value', 'text']),
         ]);
     }
 
     /**
-     * @inheritdoc
+     * @param array $options
+     * @return array
      */
-    protected function formatOptions(array $options = [])
+    protected function formatOptions(array $options): array
     {
         foreach ($options as $key => $option) {
             if (!is_array($option)) {
                 $option = [
-                    'value'=>$key,
-                    'text'=>$option,
+                    'value' => $key,
+                    'text' => $option,
                 ];
             }
-            
+
             if (
-                (!isset($option['value'], $option['text'])) && 
+                !isset($option['value'], $option['text']) &&
                 (isset($option[0], $option[1]))
             ) {
-                $option = ['value'=> $option[0], 'text'=> $option[1]];
+                $option = ['value' => $option[0], 'text' => $option[1]];
             }
-            
+
             $options[$key] = $option;
         }
 
@@ -210,19 +245,23 @@ class AutocompleteWidget extends BasicWidget
     }
 
     /**
-     * @inheritdoc
+     * @param array $options
+     * @return array
      */
-    protected function getSelectOptions(array $options = [])
+    protected function getSelectOptions(array $options): array
     {
-        foreach ($this->formatOptions($options) as $key => $option) {
+        $options = $this->formatOptions($options);
+
+        foreach ($options as $key => $option) {
             $options[$key] = $this->getOption($option);
         }
 
         return $options;
     }
-    
+
     /**
-     * @inheritdoc
+     * @param array $data
+     * @return array|string[]
      */
     public function secureFields(array $data): array
     {

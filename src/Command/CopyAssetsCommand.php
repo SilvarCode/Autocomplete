@@ -5,6 +5,7 @@ declare(strict_types=1);
  * ***********************************
  * ||       CopyAssetsCommand       ||
  * ***********************************
+ *
  * @copyright   2022 SilvarCode / SilvarCode.com
  *              All rights reserved.
  * @link        https://silvarcode.com
@@ -15,7 +16,6 @@ declare(strict_types=1);
  */
 namespace SilvarCode\Autocomplete\Command;
 
-use Cake\Command\Command;
 use Bake\Command\BakeCommand;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
@@ -28,7 +28,7 @@ use Cake\Filesystem\Filesystem;
 class CopyAssetsCommand extends BakeCommand
 {
     /**
-     * 
+     * @return string
      */
     public static function defaultName(): string
     {
@@ -49,7 +49,8 @@ class CopyAssetsCommand extends BakeCommand
         $webroot = rtrim(WWW_ROOT, $DS);
 
         $parser->setDescription(
-            "The sole purpose of this command is to <info>copy</info> the assets from the plugin's webroot into {$webroot}{$DS}autocomplete{$DS}"
+            'The sole purpose of this command is to <info>copy</info> ' .
+            "the assets from the plugin's webroot into $webroot{$DS}autocomplete$DS"
         )->addOption('confirm', [
             'help' => 'Please confirm you would like to copy webroot assets',
             'required' => true,
@@ -68,18 +69,20 @@ class CopyAssetsCommand extends BakeCommand
      */
     public function execute(Arguments $args, ConsoleIo $io)
     {
-        if (in_array(strtolower($args->getOption('confirm')), ['no','n'])) {
+        if (in_array(strtolower($args->getOption('confirm')), ['no', 'n'])) {
             $this->abort();
         }
 
         $source = rtrim(
-            \Cake\Core\Plugin::path("SilvarCode/Autocomplete"
-        ), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'webroot';
-        
+            \Cake\Core\Plugin::path('SilvarCode/Autocomplete'),
+            DIRECTORY_SEPARATOR
+        ) . DIRECTORY_SEPARATOR . 'webroot';
+
         $fs = new Filesystem();
-        $destination = WWW_ROOT. 'autocomplete' . DIRECTORY_SEPARATOR;
+        $destination = WWW_ROOT . 'autocomplete' . DIRECTORY_SEPARATOR;
         if ($fs->copyDir($source, $destination)) {
             $io->out('Assets copied to directory: ' . $destination);
+
             return null;
         }
 

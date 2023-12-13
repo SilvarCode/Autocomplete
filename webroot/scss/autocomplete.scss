@@ -19,36 +19,51 @@ ul.ui-autocomplete {
 
 .autocomplete-selection {
     margin-bottom: 0.25rem;
+
+    &.multiline {
+        gap: 0.5rem;
+        display: flex;
+        .autocomplete-selection-item {
+            display: inline-flex;
+        }
+    }
 }
 
 .autocomplete-selection-item {
-    color: #fff;
+    gap: 0.5rem;
+    padding: 0.25rem;
+    margin: 0.25rem 0;
+    color: #333;
     cursor: initial;
-    display: inline-block;
-    background: #5e6264;
-    border-radius: 5px;
-    margin: 0;
-    margin-right: 0.5em;
-    margin-bottom: 0.5em;
-}
+    display: flex;
+    background-color: #bababa;
+    border-radius: 0.25rem;
 
-.autocomplete-selection-item span {
-    display: inline-block;
-    padding: unset;
-}
+    span {
+        display: inline-block;
+        padding: unset;
 
-.autocomplete-selection-item span i {
-    display: inline-block;
-}
+        i {
+            display: inline-block;
+        }
 
-.autocomplete-selection-item span.text {
-    color: inherit;
-    padding: 0 0.5rem 0 0.5rem;
-}
+        &.text {
+            color: inherit;
+            padding: 0 0.5rem 0 0.5rem;
+            flex-grow: 1;
+        }
 
-.autocomplete-selection-item span.remove-button {
-    cursor: pointer;
-    color: var(--danger);
-    border-left: 1px solid #dee2e6;
-    padding: 0 0.25em 0 0.25em;
+        &.remove-button {
+            cursor: pointer;
+            color: var(--danger);
+            border-left: 1px solid #dee2e6;
+            padding: 0 0.5em;
+            flex-direction: column;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: white;
+            border-radius: 0.25rem;
+        }
+    }
 }

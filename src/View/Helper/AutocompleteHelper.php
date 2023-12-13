@@ -5,6 +5,7 @@ declare(strict_types=1);
  * ***********************************
  * ||       AutocompleteTrait       ||
  * ***********************************
+ *
  * @copyright   2022 SilvarCode / SilvarCode.com
  *              All rights reserved.
  * @link        https://silvarcode.com
@@ -15,13 +16,16 @@ declare(strict_types=1);
  */
 namespace SilvarCode\Autocomplete\View\Helper;
 
-use Cake\View\Helper;
-use Cake\View\View;
 use Cake\Utility\Inflector;
+use Cake\View\Helper;
 use SilvarCode\Autocomplete\View\Widget\AutocompleteWidget;
 
 /**
  * Autocomplete helper
+ *
+ * @property \Cake\View\Helper\HtmlHelper $Html
+ * @property \Cake\View\Helper\FormHelper $Form
+ * @property \Cake\View\Helper\UrlHelper $Url
  */
 class AutocompleteHelper extends Helper
 {
@@ -33,7 +37,7 @@ class AutocompleteHelper extends Helper
         'Html',
         'Form',
     ];
-    
+
     /**
      * Default configuration.
      *
@@ -41,45 +45,43 @@ class AutocompleteHelper extends Helper
      */
     protected $_defaultConfig = [];
 
-    /**
-     * 
-     */
     public function initialize(array $config): void
-	{
-		parent::initialize($config);
+    {
+        parent::initialize($config);
 
         $this->Form->addWidget(
-            'autocomplete', 
+            'autocomplete',
             [
-                AutocompleteWidget::class
+                AutocompleteWidget::class,
             ]
         );
-        
-        $this->Html->css('/autocomplete/autocomplete.css', ['block'=>true]);
-        $this->Html->script('/autocomplete/autocomplete.min.js', ['block'=>'scriptBottom']);
-	}
+
+        $this->Html->css('/autocomplete/css/autocomplete.min.css', ['block' => true]);
+        $this->Html->script('/autocomplete/js/autocomplete.min.js', ['block' => 'scriptBottom']);
+    }
 
     /**
-     * For convenience only
-     * @param array $options - an array <numeric => string>
-     * @param array - an empty array when the data passed is not in the correct format,
-     * or an array formatted as ['value'=>$key, 'text'=>$value]
+     * @param array $options
+     * @return array
      */
     public function buildOptions(array $options): array
     {
         $niceOptions = [];
-        foreach ($options as $key=>$option) {
-            if ((is_string($option)) && ((is_numeric($key)) || (strlen($key) == 36))) {
-                $niceOptions[] = ['value'=>$key, 'text'=>$option];
+        foreach ($options as $key => $option) {
+            if (is_string($option) && (is_numeric($key) || (strlen($key) === 16 || strlen($key) === 36))) {
+                $niceOptions[] = ['value' => $key, 'text' => $option];
             }
         }
+
         return $niceOptions;
     }
 
     /**
-     * Render form control
+     * @param string $field
+     * @param array $options
+     * @return string
      */
-    public function autocomplete(string $field, array $options = [])
+    public function autocomplete(string $field, array $options = []): string
     {
         $request = $this->getView()->getRequest();
         $fieldArray = explode('.', $field);
@@ -87,11 +89,11 @@ class AutocompleteHelper extends Helper
         if ((count($fieldArray) > 1) && (!isset($options['data-url']))) {
             $fieldController = Inflector::pluralize(current($fieldArray));
             $fieldController = Inflector::dasherize($fieldController);
-        } elseif ((!isset($options['data-url'])) || ((substr($field, -3) === '_id'))) {
+        } elseif (!isset($options['data-url']) || AutocompleteWidget::hasSuffix($field, '_id')) {
             $fieldController = Inflector::dasherize(
                 Inflector::pluralize(
                     rtrim(
-                        $field, 
+                        $field,
                         '_id'
                     )
                 )
@@ -100,16 +102,16 @@ class AutocompleteHelper extends Helper
 
         $options = array_merge([
             'label' => false,
-            'placeholder'=> __('Type to search ...'),
-            'data-url'=> $this->Url->build([
-                'prefix'=>null,
-                'action'=>'autocomplete',
-                'controller'=>$fieldController,
+            'placeholder' => __('Type to search ...'),
+            'data-url' => $this->Url->build([
+                'prefix' => null,
+                'action' => 'autocomplete',
+                'controller' => $fieldController,
             ]),
         ], array_merge($options, [
-            'type'=>'autocomplete',
+            'type' => 'autocomplete',
         ]));
-        
+
         return $this->Form->control($field, $options);
     }
 }

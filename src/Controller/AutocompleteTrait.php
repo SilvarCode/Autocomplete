@@ -5,6 +5,7 @@ declare(strict_types=1);
  * ***********************************
  * ||       AutocompleteTrait       ||
  * ***********************************
+ *
  * @copyright   2022 SilvarCode / SilvarCode.com
  *              All rights reserved.
  * @link        https://silvarcode.com
@@ -22,23 +23,29 @@ trait AutocompleteTrait
     /**
      * @property $autocompleteTable
      */
-    protected $autocompleteTable = null;
-    
+    protected ?string $autocompleteTable = null;
+
     /**
      * @property array $autocompleteSelectFields
      */
-    protected $autocompleteSelectFields = [];
+    protected array $autocompleteSelectFields = [];
 
     /**
-     * @inheritdoc
+     * @property array $autocompleteContain
      */
-    protected function setAutocompleteTable(string $table)
+    protected array $autocompleteContain = [];
+
+    /**
+     * @param string $table
+     * @return void
+     */
+    protected function setAutocompleteTable(string $table): void
     {
         $this->autocompleteTable = $table;
     }
 
     /**
-     * @inheritdoc
+     * @return string
      */
     protected function getAutocompleteTable(): string
     {
@@ -50,15 +57,16 @@ trait AutocompleteTrait
     }
 
     /**
-     * @inheritdoc
+     * @param array $fields
+     * @return void
      */
-    protected function setAutocompleteSelectFields(array $fields = [])
+    protected function setAutocompleteSelectFields(array $fields = []): void
     {
         $this->autocompleteSelectFields = $fields;
     }
 
     /**
-     * @inheritdoc
+     * @return array
      */
     protected function getAutocompleteSelectFields(): array
     {
@@ -66,81 +74,99 @@ trait AutocompleteTrait
     }
 
     /**
-     * @inheritdoc
+     * @param array $autocompleteContain
+     * @return void
+     */
+    protected function setAutocompleteContain(array $autocompleteContain = []): void
+    {
+        $this->autocompleteContain = $autocompleteContain;
+    }
+
+    /**
+     * @return array
+     */
+    protected function getAutocompleteContain(): array
+    {
+        return $this->autocompleteContain;
+    }
+
+    /**
+     * @inheritDoc
+     * @throws \Exception
      */
     public function autocomplete()
     {
         $this->disableAutoRender();
-        $this->viewBuilder()->setLayout('ajax');
-        foreach (['RequestHandler', 'Flash'] as $component) {
-            if (empty($this->components()->has($component))) {
-                $this->loadComponent($component); 
-            }
-        }
-        
-        $term = 'term';
-        $term = (string) $this->request->getData(
-            $term,
-            $this->request->getQuery(
-                $term
-            )
-        );
-
-        $records = [];
-        $displayField = null;
-        if (($this->request->getAttribute('isAjax')) || (Configure::read('debug'))) {
+        if ($this->request->is(['ajax'])) {
             $this->enableAutoRender();
-            $table = $this->fetchTable($this->getAutocompleteTable());
-            $alias = $table->getAlias();
-            $displayField = $table->getDisplayField();
-            $select = $this->getAutocompleteSelectFields();
-            $select = !empty($select) ? $select : array_unique([
-                $table->aliasField(
-                    $table->getPrimaryKey()
-                ),
-                $table->aliasField(
-                    $table->getDisplayField()
-                ),
-            ]);
-            
-            if (method_exists($this, 'getAutocompleteConditions')) {
-                $conditions = $this->getAutocompleteConditions();
-            } else {
-                $conditions = [
-                    "{$alias}.{$displayField} LIKE" => '%'.$term.'%'
-                ];
-                
-                if ($table->hasField('active')) {
-                    $conditions["{$alias}.active"] = 1;
-                } elseif ($table->hasField('published')) {
-                    $conditions["{$alias}.published"] = 1;
-                }
+            $this->viewBuilder()->setLayout('ajax');
+            $component = 'Flash';
+            if (empty($this->components()->has($component))) {
+                $this->loadComponent($component);
             }
-            
-            $records = $table->find()->select(
-                $select
-            )->where(
-                $conditions
-            )->order([
-                $table->aliasField(
-                    $displayField
-                ) => 'ASC',
-            ])->limit(10)->all();
-        }
-        
-        $this->set(compact('records','displayField'));
-        $this->response = $this->response->withCache('-1 minute', '+5 minutes');
-        $this->RequestHandler->respondAs('application/json');
 
-        try {
-            $this->render();
-        } catch (\Exception $e) {
-            $viewBuilder = $this->viewBuilder();
-            $viewBuilder->setLayout('ajax');
-            $viewBuilder->setPlugin('SilvarCode/Autocomplete');
-            $viewBuilder->setTemplate('autocomplete');
-            $viewBuilder->setTemplatePath('element');
-            $this->render();
+            $term = 'term';
+            $term = (string)$this->request->getData(
+                $term,
+                $this->request->getQuery(
+                    $term
+                )
+            );
+
+            $records = [];
+            $displayField = null;
+            if ($this->request->getAttribute('isAjax') || (Configure::read('debug'))) {
+                $this->enableAutoRender();
+                $table = $this->fetchTable($this->getAutocompleteTable());
+                $alias = $table->getAlias();
+                $displayField = $table->getDisplayField();
+                $select = $this->getAutocompleteSelectFields();
+                $select = !empty($select) ? $select : array_unique([
+                    $table->aliasField(
+                        $table->getPrimaryKey()
+                    ),
+                    $table->aliasField(
+                        $table->getDisplayField()
+                    ),
+                ]);
+
+                if (method_exists($this, 'getAutocompleteConditions')) {
+                    $conditions = $this->getAutocompleteConditions();
+                } else {
+                    $conditions = [
+                        "{$alias}.{$displayField} LIKE" => '%' . $term . '%',
+                    ];
+
+                    if ($table->hasField('active')) {
+                        $conditions["{$alias}.active"] = 1;
+                    } elseif ($table->hasField('published')) {
+                        $conditions["{$alias}.published"] = 1;
+                    }
+                }
+
+                $records = $table->find()
+                    ->select($select)
+                    ->contain($this->getAutocompleteContain())
+                    ->where($conditions)
+                    ->order([$table->aliasField($displayField) => 'ASC'])
+                    ->limit(10)
+                    ->all();
+            }
+
+            $this->set(compact('records', 'displayField'));
+            $this->response = $this->response->withCache('-1 minute', '+5 minutes');
+            $this->response = $this->response->withType('application/json');
+
+            try {
+                $this->render();
+            } catch (\Exception $e) {
+                $viewBuilder = $this->viewBuilder();
+                $viewBuilder->setLayout('ajax');
+                $viewBuilder->setPlugin('SilvarCode/Autocomplete');
+                $viewBuilder->setTemplate('autocomplete');
+                $viewBuilder->setTemplatePath('element');
+                $this->render();
+            }
         }
     }
 }

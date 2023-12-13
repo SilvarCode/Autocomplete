@@ -20,29 +20,45 @@ jQuery(document).ready(function($){
         let autocompleteCache = {};
         let autocompleteShow = $('#' + autocompleteId + '-show');
         let autocompleteSelect = $('#' + autocompleteId + '-hidden');
-        /**
-         * We still have minor problem which we need to fix before the next release
-         */
+        let autocompleteSelectMultiple = autocompleteSelect.attr('multiple') === 'multiple';
 
         enforceOptionsSelected();
-        autocompleteShow.find('span.autocomplete-selection-item span.remove-button i').each(function(){
-            $(this).on('click', function(){
-                let toRemove = $(this).closest('span.autocomplete-selection-item');
-                let toRemoveHiddenValue = $(toRemove).find('span.remove-button i').attr('data-hidden-value');
-                removeOption(toRemoveHiddenValue);
-                toRemove.remove();
-            });
-        });
+        autocompleteShowHandler();
 
-        /**
-         * 
-         */
+        function autocompleteShowHandler()
+        {
+            const selectedOptionsArray = autocompleteSelect.find('option').toArray();
+            const optionValues = $(selectedOptionsArray).map(function() {
+                return $(this).val();
+            }).get();
+
+            autocompleteShow.find('span.autocomplete-selection-item').each(function(){
+                const showItem = $(this);
+                const showItemButton = showItem.find('.remove-button');
+                const showItemButtonIcon = showItemButton.find('i');
+                const showItemButtonValue = showItemButtonIcon.attr('data-hidden-value');
+                const isValueInArray = $.inArray(showItemButtonValue, optionValues) !== -1;
+
+                if (!isValueInArray) {
+                    showItem.remove();
+                }
+
+                showItemButtonIcon.on('click', function(){
+                    let toRemove = $(this).closest('span.autocomplete-selection-item');
+                    let toRemoveHiddenValue = $(toRemove).find('span.remove-button i').attr('data-hidden-value');
+                    removeOption(toRemoveHiddenValue);
+                    toRemove.remove();
+                });
+            });
+        }
+
         function getOptionValues()
         {
             let values = [];
             autocompleteSelect.find('option').each(function(){
                 values.push($(this).val());
             });
+
             return values;
         }
 
@@ -83,9 +99,12 @@ jQuery(document).ready(function($){
                 $(this).remove();
             });
         }
-        
+
         /**
-         * Document function
+         *
+         * @param term
+         * @param searchOptions
+         * @returns {*[]}
          */
         function filterDataOptions(term, searchOptions)
         {
@@ -117,6 +136,7 @@ jQuery(document).ready(function($){
         
         /**
          * Set selected property of selected options
+         *
          * @return void
          */
         function enforceOptionsSelected()
@@ -139,11 +159,12 @@ jQuery(document).ready(function($){
             select: function(event, ui) {
                 if (checkOptionValueExists(ui.item.value)) {
                     this.value = '';
+
                     return false;
                 }
                 
-                //Only one option when not multiple
-                if ((autocompleteSelect.attr('multiple') !== 'multiple')) {
+                // Only one option when not multiple
+                if (!autocompleteSelectMultiple) {
                     removeOptions();
                 }
 
@@ -168,21 +189,11 @@ jQuery(document).ready(function($){
                 span.find('span.text').html(ui.item.label);
                 span.find('span.remove-button i').attr('data-hidden-value', ui.item.value);
                 
-                autocompleteShow.append(
-                    span
-                );
-                
-                span.find('span.remove-button i').each(function(){
-                    $(this).on('click', function(){
-                        let toRemove = $(this).closest('span.autocomplete-selection-item');
-                        let toRemoveHiddenValue = $(toRemove).find('span.remove-button i').attr('data-hidden-value');
-                        removeOption(toRemoveHiddenValue);
-                        toRemove.remove();
-                    });
-                });
-                
+                autocompleteShow.append(span);
                 enforceOptionsSelected();
+                autocompleteShowHandler();
                 this.value = '';
+
                 return false;
             },
             source: function(request, response ) {
@@ -191,8 +202,8 @@ jQuery(document).ready(function($){
                     return;
                 }
                 
-                //Only one option when not multiple
-                if ((autocompleteSelect.attr('multiple') !== 'multiple')) {
+                // Only one option when not multiple
+                if (!autocompleteSelectMultiple) {
                     removeOptions();
                 }
                 
@@ -236,16 +247,9 @@ jQuery(document).ready(function($){
             minLength: 2
         })
         .data("ui-autocomplete")._renderItem = function (ul, item) {
-            return $(
-                "<li></li>"
-            ).data(
-                "ui-autocomplete-item", 
-                item
-            ).append(
-                "<div>" + boldSpanText(item.label, this.term) + "</div>"
-            ).appendTo(
-                ul
-            );
+            let content = "<div>" + boldSpanText(item.label, this.term) + "</div>";
+
+            return $("<li></li>").data("ui-autocomplete-item", item).append(content).appendTo(ul);
         };
     });
 });
