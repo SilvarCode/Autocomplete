@@ -66,7 +66,6 @@ class AutocompleteHelper extends Helper
 
         $this->Url = $this->getView()->loadHelper('Url');
         $this->Html = $this->getView()->loadHelper('Html');
-        $this->Form = $this->getView()->loadHelper('Form');
 
         if ($this->getConfig('loadAssets')) {
             $this->Html->css('/autocomplete/css/autocomplete.min.css', [
