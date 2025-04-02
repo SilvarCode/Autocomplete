@@ -46,7 +46,13 @@ class AutocompleteHelper extends Helper
      *
      * @var array
      */
-    protected array $defaultConfig = [];
+    protected array $defaultConfig = [
+        'loadAssets' => true,
+        'loadAssetsBlock' => [
+            'style' => 'bottomStyle',
+            'script' => 'bottomScript',
+        ],
+    ];
 
     /**
      * @param array $config
@@ -60,15 +66,19 @@ class AutocompleteHelper extends Helper
 
         $this->Url = $this->getView()->loadHelper('Url');
         $this->Html = $this->getView()->loadHelper('Html');
-        $this->Html->css('/autocomplete/css/autocomplete.min.css', ['block' => true]);
-        $this->Html->script('/autocomplete/js/autocomplete.min.js', ['block' => 'scriptBottom']);
         $this->Form = $this->getView()->loadHelper('Form');
-        $this->Form->addWidget(
-            'autocomplete',
-            [
-                AutocompleteWidget::class,
-            ]
-        );
+
+        if ($this->getConfig('loadAssets')) {
+            $this->Html->css('/autocomplete/css/autocomplete.min.css', [
+                'block' => $this->getConfig('loadAssetsBlock.style')
+            ]);
+            $this->Html->script('/autocomplete/js/autocomplete.min.js', [
+                'block' => $this->getConfig('loadAssetsBlock.script')
+            ]);
+        }
+
+        $this->Form = $this->getView()->loadHelper('Form');
+        $this->Form->addWidget('autocomplete', [AutocompleteWidget::class]);
     }
 
     /**
